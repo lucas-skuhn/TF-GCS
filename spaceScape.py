@@ -114,12 +114,25 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    # --- Movimento do jogador ---
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and player_rect.left > 0:
-        player_rect.x -= player_speed
-    if keys[pygame.K_RIGHT] and player_rect.right < WIDTH:
-        player_rect.x += player_speed
+      # --- Movimento do jogador ---
+keys = pygame.key.get_pressed()
+
+# mover para a esquerda
+if keys[pygame.K_LEFT] and player_rect.left > 0:
+    player_rect.x -= player_speed
+
+# mover para a direita
+if keys[pygame.K_RIGHT] and player_rect.right < WIDTH:
+    player_rect.x += player_speed
+
+# mover para cima
+if keys[pygame.K_UP] and player_rect.top > 0:
+    player_rect.y -= player_speed
+
+# mover para baixo
+if keys[pygame.K_DOWN] and player_rect.bottom < HEIGHT:
+    player_rect.y += player_speed
+
 
     # --- Movimento dos meteoros ---
     for meteor in meteor_list:
