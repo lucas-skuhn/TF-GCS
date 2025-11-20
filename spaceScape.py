@@ -36,6 +36,7 @@ WHITE = (255, 255, 255)
 RED = (255, 60, 60)
 BLUE = (60, 100, 255)
 YELLOW = (255, 240, 0)
+GREEN = (0, 255, 0)
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -77,9 +78,12 @@ player_rect = player_img.get_rect(center=(WIDTH // 2, HEIGHT - 60))
 player_speed = 7
 
 meteor_list = []
+METEOR_TYPE_NORMAL = 0
+METEOR_TYPE_BONUS = 1
 for _ in range(5):
     x = random.randint(0, WIDTH - 40)
     y = random.randint(-500, -40)
+    meteor_type = METEOR_TYPE_BONUS if random.randint(1, 10) == 1 else METEOR_TYPE_NORMAL
     meteor_list.append(pygame.Rect(x, y, 40, 40))
 
 meteor_speed = 5
@@ -149,58 +153,89 @@ while running:
             missiles.remove(missile)
             continue
 
-        for meteor in meteor_list[:]:
-            if missile.colliderect(meteor):
+        for meteor_data in meteor_list[:]:
+            meteor_rect, meteor_type = meteor_data
+            
+            if missile.colliderect(meteor_rect):
 
                 missiles.remove(missile)
 
-                exp_rect = explosion_img.get_rect(center=meteor.center)
+                exp_rect = explosion_img.get_rect(center=meteor_rect.center)
                 explosions.append([explosion_img, exp_rect, pygame.time.get_ticks()])
 
-                meteor_list.remove(meteor)
-
-                new_meteor = pygame.Rect(
+                meteor_list.remove(meteor_data)
+                new_meteor_type = METEOR_TYPE_BONUS if random.randint(1, 10) == 1 else METEOR_TYPE_NORMAL
+                new_meteor_rect = pygame.Rect(
                     random.randint(0, WIDTH - 40),
                     random.randint(-300, -40),
                     40, 40
                 )
-                meteor_list.append(new_meteor)
+                meteor_list.append([new_meteor_rect, new_meteor_type])
 
-                score += 5
+                score += 5 if meteor_type == METEOR_TYPE_NORMAL else 10
+                
                 break
 
     # ------------------------------------------------------
     # METEOROS
     # ------------------------------------------------------
-    for meteor in meteor_list:
-        meteor.y += meteor_speed
+    for meteor_data in meteor_list[:]: 
+    meteor_rect, meteor_type = meteor_data
+    meteor_rect.y += meteor_speed
 
-        if meteor.y > HEIGHT:
-            meteor.y = random.randint(-100, -40)
-            meteor.x = random.randint(0, WIDTH - meteor.width)
+    if meteor_rect.y > HEIGHT:
+        meteor_list.remove(meteor_data)
+        new_meteor_type = METEOR_TYPE_BONUS if random.randint(1, 10) == 1 else METEOR_TYPE_NORMAL
+        new_meteor_rect = pygame.Rect(
+            random.randint(0, WIDTH - 40),
+            random.randint(-100, -40),
+            40, 40
+        )
+        meteor_list.append([new_meteor_rect, new_meteor_type])
+    
+        if meteor_type == METEOR_TYPE_NORMAL:
             score += 1
             if sound_point:
                 sound_point.play()
+        
+        continue 
 
-        if meteor.colliderect(player_rect):
+    if meteor_rect.colliderect(player_rect):
+        
+        if meteor_type == METEOR_TYPE_NORMAL:
             lives -= 1
-            meteor.y = random.randint(-100, -40)
-            meteor.x = random.randint(0, WIDTH - meteor.width)
             if sound_hit:
                 sound_hit.play()
-            if lives <= 0:
-                running = False
+        else: 
+            lives += 1
+            if sound_point: 
+                sound_point.play()
+            
+        # Remover o meteoro antigo
+        meteor_list.remove(meteor_data)
+        new_meteor_type = METEOR_TYPE_BONUS if random.randint(1, 10) == 1 else METEOR_TYPE_NORMAL
+        new_meteor_rect = pygame.Rect(
+            random.randint(0, WIDTH - 40),
+            random.randint(-100, -40),
+            40, 40
+        )
+        meteor_list.append([new_meteor_rect, new_meteor_type])
 
+        if lives <= 0:
+            running = False
     # ------------------------------------------------------
     # DESENHAR SPRITES
     # ------------------------------------------------------
     screen.blit(player_img, player_rect)
 
-    for meteor in meteor_list:
-        screen.blit(meteor_img, meteor)
+for meteor_data in meteor_list:
+    meteor_rect, meteor_type = meteor_data
+    screen.blit(meteor_img, meteor_rect)
+    if meteor_type == METEOR_TYPE_BONUS:
+        pygame.draw.circle(screen, GREEN, meteor_rect.center, meteor_rect.width // 4)
 
-    for missile in missiles:
-        screen.blit(missile_img, missile)
+for missile in missiles:
+    screen.blit(missile_img, missile)
 
     # ------------------------------------------------------
     # EXPLOSÕES
