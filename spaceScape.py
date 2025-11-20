@@ -258,11 +258,24 @@ for missile in missiles:
 # GAME OVER
 # ----------------------------------------------------------
 pygame.mixer.music.stop()
-screen.fill((20, 20, 20))
-end_text = font.render("Fim de jogo! Pressione qualquer tecla para sair.", True, WHITE)
+
+CONDICAO_VITORIA = 500
+
+if score >= CONDICAO_VITORIA:
+    end_message = "VITÓRIA! O MUNDO ESTÁ SALVO!"
+    screen.fill(BLUE) 
+    final_message_color = YELLOW
+else:
+    end_message = "Fim de jogo! Pressione qualquer tecla para sair."
+    screen.fill((50, 50, 50)) 
+    final_message_color = RED
+
+end_text = font.render(end_message, True, final_message_color)
 final_score = font.render(f"Pontuação final: {score}", True, WHITE)
-screen.blit(end_text, (150, 260))
-screen.blit(final_score, (300, 300))
+
+screen.blit(end_text, (WIDTH // 2 - end_text.get_width() // 2, HEIGHT // 2 - 50))
+screen.blit(final_score, (WIDTH // 2 - final_score.get_width() // 2, HEIGHT // 2))
+
 pygame.display.flip()
 
 waiting = True
