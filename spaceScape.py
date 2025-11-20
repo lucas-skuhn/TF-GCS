@@ -257,7 +257,7 @@ for missile in missiles:
 # ----------------------------------------------------------
 # GAME OVER
 # ----------------------------------------------------------
-pygame.mixer.music.stop()
+pygame.mixer.music.stop()/
 
 CONDICAO_VITORIA = 500
 
