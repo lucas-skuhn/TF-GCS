@@ -128,6 +128,94 @@ def load_game():
         return None
 
 
+# ----------------------------------------------------------
+# SISTEMA DE HIGH SCORE
+# ----------------------------------------------------------
+HIGH_SCORE_FILE = "high_score.json"
+
+def load_high_score():
+    """Carrega o HIGH SCORE máximo do arquivo JSON"""
+    if not os.path.exists(HIGH_SCORE_FILE):
+        return {"score": 0, "name": "---", "date": "---"}
+    
+    try:
+        with open(HIGH_SCORE_FILE, 'r') as f:
+            high_score = json.load(f)
+        return high_score
+    except Exception as e:
+        print(f"Erro ao carregar high score: {e}")
+        return {"score": 0, "name": "---", "date": "---"}
+
+
+def save_high_score(score, player_name="Jogador"):
+    """Salva um novo HIGH SCORE se a pontuação for maior que a anterior"""
+    current_high_score = load_high_score()
+    
+    if score > current_high_score["score"]:
+        new_entry = {
+            "name": player_name if player_name.strip() else "Jogador",
+            "score": score,
+            "date": datetime.now().strftime("%d/%m/%Y %H:%M")
+        }
+        
+        try:
+            with open(HIGH_SCORE_FILE, 'w') as f:
+                json.dump(new_entry, f, indent=4)
+            return True
+        except Exception as e:
+            print(f"Erro ao salvar high score: {e}")
+            return False
+    
+    return False
+
+
+def is_high_score(score):
+    """Verifica se a pontuação é um novo HIGH SCORE"""
+    current_high_score = load_high_score()
+    return score > current_high_score["score"]
+
+
+def show_high_scores():
+    """Mostra o HIGH SCORE máximo na tela"""
+    high_score = load_high_score()
+    
+    show_running = True
+    while show_running:
+        screen.fill((10, 10, 30))
+        
+        # Título
+        title_font = pygame.font.Font(None, 72)
+        title_text = title_font.render("🏆 HIGH SCORE 🏆", True, YELLOW)
+        screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 80))
+        
+        # Exibir high score
+        score_font = pygame.font.Font(None, 48)
+        name_text = score_font.render(f"Jogador: {high_score['name']}", True, WHITE)
+        score_text = score_font.render(f"Pontos: {high_score['score']}", True, YELLOW)
+        date_text = pygame.font.Font(None, 32).render(f"Data: {high_score['date']}", True, WHITE)
+        
+        screen.blit(name_text, (WIDTH // 2 - name_text.get_width() // 2, 200))
+        screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 280))
+        screen.blit(date_text, (WIDTH // 2 - date_text.get_width() // 2, 350))
+        
+        # Instrução
+        instruction_font = pygame.font.Font(None, 28)
+        instruction_text = instruction_font.render("Pressione qualquer tecla para voltar", True, WHITE)
+        screen.blit(instruction_text, (WIDTH // 2 - instruction_text.get_width() // 2, HEIGHT - 50))
+        
+        pygame.display.flip()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN:
+                show_running = False
+        
+        clock.tick(FPS)
+    
+    return True
+
+
 player_rect = player_img.get_rect(center=(WIDTH // 2, HEIGHT - 60))
 player_speed = 7
 
@@ -157,6 +245,61 @@ lives = 3
 
 font = pygame.font.Font(None, 36)
 clock = pygame.time.Clock()
+
+# Menu de início com opções
+menu_escolha = None
+menu_running = True
+menu_y = 0
+
+while menu_running:
+    screen.fill((10, 10, 30))
+    
+    # Título
+    title_font = pygame.font.Font(None, 72)
+    title_text = title_font.render("🚀 SPACE ESCAPE", True, YELLOW)
+    screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 30))
+    
+    # Exibir HIGH SCORE atual
+    high_score = load_high_score()
+    high_score_font = pygame.font.Font(None, 32)
+    hs_text = high_score_font.render(f"🏆 HIGH SCORE: {high_score['score']} pts ({high_score['name']})", True, YELLOW)
+    screen.blit(hs_text, (WIDTH // 2 - hs_text.get_width() // 2, 110))
+    
+    # Menu options
+    menu_font = pygame.font.Font(None, 48)
+    options = ["NOVO JOGO", "HIGH SCORE", "SAIR"]
+    
+    for idx, option in enumerate(options):
+        color = YELLOW if menu_y == idx else WHITE
+        option_text = menu_font.render(option, True, color)
+        screen.blit(option_text, (WIDTH // 2 - option_text.get_width() // 2, 200 + idx * 80))
+    
+    # Instruções
+    instruction_font = pygame.font.Font(None, 28)
+    instruction_text = instruction_font.render("Use ↑↓ para navegar, ENTER para selecionar", True, WHITE)
+    screen.blit(instruction_text, (WIDTH // 2 - instruction_text.get_width() // 2, HEIGHT - 50))
+    
+    pygame.display.flip()
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP:
+                menu_y = (menu_y - 1) % len(options)
+            elif event.key == pygame.K_DOWN:
+                menu_y = (menu_y + 1) % len(options)
+            elif event.key == pygame.K_RETURN:
+                if menu_y == 0:  # Novo Jogo
+                    menu_running = False
+                elif menu_y == 1:  # High Score
+                    show_high_scores()
+                elif menu_y == 2:  # Sair
+                    pygame.quit()
+                    exit()
+    
+    clock.tick(FPS)
 
 # Verificar se há jogo salvo ao iniciar
 saved_state = load_game()
@@ -338,6 +481,9 @@ pygame.mixer.music.stop()/
 
 CONDICAO_VITORIA = 500
 
+# Verificar se é novo high score
+new_high_score = is_high_score(score)
+
 if score >= CONDICAO_VITORIA:
     end_message = "VITÓRIA! O MUNDO ESTÁ SALVO!"
     screen.fill(BLUE) 
@@ -353,12 +499,25 @@ final_score = font.render(f"Pontuação final: {score}", True, WHITE)
 screen.blit(end_text, (WIDTH // 2 - end_text.get_width() // 2, HEIGHT // 2 - 50))
 screen.blit(final_score, (WIDTH // 2 - final_score.get_width() // 2, HEIGHT // 2))
 
+# Mostrar se é novo high score
+if new_high_score:
+    high_score_text = font.render("🌟 NOVO HIGH SCORE! 🌟", True, YELLOW)
+    screen.blit(high_score_text, (WIDTH // 2 - high_score_text.get_width() // 2, HEIGHT // 2 + 50))
+    
+    # Salvar high score
+    save_high_score(score)
+
 pygame.display.flip()
 
 waiting = True
 while waiting:
     for event in pygame.event.get():
-        if event.type == pygame.QUIT or event.type == pygame.KEYDOWN:
+        if event.type == pygame.QUIT:
             waiting = False
+        if event.type == pygame.KEYDOWN:
+            waiting = False
+
+# Mostrar high scores ao final
+show_high_scores()
 
 pygame.quit()
