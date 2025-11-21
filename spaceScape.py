@@ -13,6 +13,8 @@
 import pygame
 import random
 import os
+import json
+from datetime import datetime
 
 pygame.init()
 
@@ -74,6 +76,58 @@ if os.path.exists(ASSETS["music"]):
     pygame.mixer.music.play(-1)
 
 
+# ----------------------------------------------------------
+# SISTEMA DE SALVAMENTO
+# ----------------------------------------------------------
+SAVE_FILE = "game_save.json"
+
+def save_game(score, lives, player_pos, meteors_data):
+    """Salva o estado atual do jogo em um arquivo JSON"""
+    game_state = {
+        "timestamp": datetime.now().isoformat(),
+        "score": score,
+        "lives": lives,
+        "player_x": player_pos[0],
+        "player_y": player_pos[1],
+        "meteors": []
+    }
+    
+    for meteor_data in meteors_data:
+        if isinstance(meteor_data, list):
+            meteor_rect, meteor_type = meteor_data
+        else:
+            meteor_rect = meteor_data
+            meteor_type = METEOR_TYPE_NORMAL
+        
+        game_state["meteors"].append({
+            "x": meteor_rect.x,
+            "y": meteor_rect.y,
+            "type": meteor_type
+        })
+    
+    try:
+        with open(SAVE_FILE, 'w') as f:
+            json.dump(game_state, f, indent=4)
+        return True
+    except Exception as e:
+        print(f"Erro ao salvar: {e}")
+        return False
+
+
+def load_game():
+    """Carrega o estado do jogo de um arquivo JSON"""
+    if not os.path.exists(SAVE_FILE):
+        return None
+    
+    try:
+        with open(SAVE_FILE, 'r') as f:
+            game_state = json.load(f)
+        return game_state
+    except Exception as e:
+        print(f"Erro ao carregar: {e}")
+        return None
+
+
 player_rect = player_img.get_rect(center=(WIDTH // 2, HEIGHT - 60))
 player_speed = 7
 
@@ -104,6 +158,23 @@ lives = 3
 font = pygame.font.Font(None, 36)
 clock = pygame.time.Clock()
 
+# Verificar se há jogo salvo ao iniciar
+saved_state = load_game()
+if saved_state:
+    score = saved_state["score"]
+    lives = saved_state["lives"]
+    player_rect.x = saved_state["player_x"]
+    player_rect.y = saved_state["player_y"]
+    
+    # Reconstruir lista de meteoros
+    meteor_list = []
+    for meteor_data in saved_state["meteors"]:
+        meteor_rect = pygame.Rect(meteor_data["x"], meteor_data["y"], 40, 40)
+        meteor_list.append([meteor_rect, meteor_data["type"]])
+    
+    print("✓ Jogo carregado com sucesso!")
+    print(f"  Pontuação: {score} | Vidas: {lives}")
+
 running = True
 
 # ----------------------------------------------------------
@@ -118,6 +189,12 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_s:  # Pressionar 'S' para salvar
+                if save_game(score, lives, (player_rect.x, player_rect.y), meteor_list):
+                    print("✓ Jogo salvo com sucesso!")
+                else:
+                    print("✗ Erro ao salvar o jogo")
 
     keys = pygame.key.get_pressed()
 
@@ -248,7 +325,7 @@ for missile in missiles:
         if pygame.time.get_ticks() - start_time > EXPLOSION_DURATION:
             explosions.remove(exp)
 
-    text = font.render(f"Pontos: {score}   Vidas: {lives}", True, WHITE)
+    text = font.render(f"Pontos: {score}   Vidas: {lives}   [S: Salvar]", True, WHITE)
     screen.blit(text, (10, 10))
 
     pygame.display.flip()
